@@ -1,0 +1,5 @@
+<!-- Registers the "custom_" setting prefix so a client can set custom_tenant_id per query, and a
+     ROW POLICY (see migrations/0002_tenant_isolation.sql) can read it via getSetting(). -->
+<clickhouse>
+    <custom_settings_prefixes>custom_</custom_settings_prefixes>
+</clickhouse>

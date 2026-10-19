@@ -1,35 +1,10 @@
-# Contributing to ClickHouse
+# Contributing to OwlPane/ClickHouse
 
-ClickHouse is an open project to which you can contribute in many ways, for example, with ideas, code, or documentation.
-We appreciate all efforts that help to make the project better.
-
-Thank you!
-
-## Legal Info
-
-When you open your first pull request in the ClickHouse repository, a bot will ask to accept the ClickHouse Individual CLA (Contributor License Agreement).
-Please review and sign it.
-
-Optionally, to make contributions more legally binding, your employer as a legal entity may want to sign a ClickHouse Corporate CLA with ClickHouse, Inc.
-If you're interested to do so, contact us at [legal@clickhouse.com](mailto:legal@clickhouse.com).
-
-## Technical Information
-
-For an overview of ClickHouse internals, see:
-- [VLDB 2024 research paper (PDF): ClickHouse - Lightning Fast Analytics for Everyone](https://www.vldb.org/pvldb/vol17/p3731-schulze.pdf)
-- [Architecture Overview](https://clickhouse.com/docs/development/architecture/)
-
-For an overview of the contributor-facing development documentation, start here: [Development and contributing](https://clickhouse.com/docs/development/)
-
-Common entry points:
-- [Developer prerequisites and setup](https://clickhouse.com/docs/development/developer-instruction)
-- [Build on Linux](https://clickhouse.com/docs/development/build)
-- [Build on macOS for macOS](https://clickhouse.com/docs/development/build-osx)
-- [Testing ClickHouse](https://clickhouse.com/docs/development/tests)
-- [C++ Style Guide](https://clickhouse.com/docs/development/style)
-
-If you want to contribute to documentation, see the [docs contribution guide](https://github.com/ClickHouse/ClickHouse/tree/master/docs#readme) in this repository (`docs/`). The live site is built with Mintlify.
-
-## See Also
-
-See also [ClickHouse AI Policy](AI_POLICY.md).
+1. Branch from **`owlpane/dev`** (tracking **`owlpane/26.8`**):
+   ```bash
+   git fetch origin
+   git checkout -B owlpane/dev origin/owlpane/26.8
+   ```
+2. Keep SaaS schema, configs, and upstream sync helpers under **`saas/`**.
+3. Open a pull request **`owlpane/dev` → `owlpane/26.8`**.
+4. After merging to **`owlpane/26.8`**, tag `v26.8.x-owlpane.N` to publish `ghcr.io/owlpane/clickhouse-server` and `ghcr.io/owlpane/clickhouse-keeper`.
