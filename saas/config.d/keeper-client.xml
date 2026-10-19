@@ -1,0 +1,14 @@
+<!-- Points this server at the Keeper quorum and gives it shard/replica identity, so
+     ReplicatedMergeTree tables (see migrations/0001) can use {shard}/{replica} in their path. -->
+<clickhouse>
+    <zookeeper>
+        <node>
+            <host>keeper</host>
+            <port>9181</port>
+        </node>
+    </zookeeper>
+    <macros>
+        <shard>01</shard>
+        <replica>01</replica>
+    </macros>
+</clickhouse>

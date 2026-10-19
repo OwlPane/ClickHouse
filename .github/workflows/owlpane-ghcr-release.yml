@@ -1,0 +1,131 @@
+name: OwlPane ClickHouse GHCR Release
+
+on:
+  push:
+    branches:
+      - "owlpane/26.8"
+    paths:
+      - "docker/server/**"
+      - "docker/keeper/**"
+      - "saas/**"
+      - ".github/workflows/owlpane-ghcr-release.yml"
+    tags:
+      - "v*-owlpane.*"
+  workflow_dispatch:
+    inputs:
+      ch_version:
+        description: "Upstream ClickHouse 4-part package version (from ClickHouse LTS)"
+        required: false
+        default: "26.8.7.19"
+      owlpane_tag:
+        description: "OwlPane image tag published to GHCR"
+        required: false
+        default: "26.8.7-owlpane.1"
+      repo_channel:
+        description: "Upstream package channel (lts or stable)"
+        required: false
+        default: "lts"
+      single_binary_url:
+        description: "Optional URL to custom-compiled OwlPane ClickHouse binary (Phase 2 C++ patches)"
+        required: false
+        default: ""
+
+concurrency:
+  group: owlpane-clickhouse-ghcr-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  CH_DEFAULT_VERSION: "26.8.7.19"
+  OWLPANE_DEFAULT_TAG: "26.8.7-owlpane.1"
+  DEFAULT_CHANNEL: "lts"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    name: Build & Push Server and Keeper (linux/amd64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout OwlPane/ClickHouse (sparse docker + saas)
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            docker/server
+            docker/keeper
+            saas
+          sparse-checkout-cone-mode: true
+
+      - name: Resolve image names and tags
+        id: meta
+        run: |
+          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+          CH_VER="${{ inputs.ch_version || env.CH_DEFAULT_VERSION }}"
+          CHANNEL="${{ inputs.repo_channel || env.DEFAULT_CHANNEL }}"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" == v*-owlpane.* ]]; then
+            OWL_TAG="${GITHUB_REF_NAME#v}"
+          else
+            OWL_TAG="${{ inputs.owlpane_tag || env.OWLPANE_DEFAULT_TAG }}"
+          fi
+          echo "owner=${OWNER_LC}" >> "$GITHUB_OUTPUT"
+          echo "ch_version=${CH_VER}" >> "$GITHUB_OUTPUT"
+          echo "channel=${CHANNEL}" >> "$GITHUB_OUTPUT"
+          echo "owlpane_tag=${OWL_TAG}" >> "$GITHUB_OUTPUT"
+          echo "server_image=${REGISTRY}/${OWNER_LC}/clickhouse-server" >> "$GITHUB_OUTPUT"
+          echo "keeper_image=${REGISTRY}/${OWNER_LC}/clickhouse-keeper" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push clickhouse-server
+        uses: docker/build-push-action@v6
+        with:
+          context: docker/server
+          file: docker/server/Dockerfile.ubuntu
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            REPO_CHANNEL=${{ steps.meta.outputs.channel }}
+            VERSION=${{ steps.meta.outputs.ch_version }}
+            single_binary_location_url=${{ inputs.single_binary_url }}
+          tags: |
+            ${{ steps.meta.outputs.server_image }}:${{ steps.meta.outputs.owlpane_tag }}
+            ${{ steps.meta.outputs.server_image }}:latest-26.8
+          labels: |
+            org.opencontainers.image.title=OwlPane ClickHouse Server
+            org.opencontainers.image.source=https://github.com/OwlPane/ClickHouse
+            org.opencontainers.image.version=${{ steps.meta.outputs.owlpane_tag }}
+            org.opencontainers.image.licenses=Apache-2.0
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,scope=server,mode=max
+
+      - name: Build and push clickhouse-keeper
+        uses: docker/build-push-action@v6
+        with:
+          context: docker/keeper
+          file: docker/keeper/Dockerfile.ubuntu
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            REPO_CHANNEL=${{ steps.meta.outputs.channel }}
+            VERSION=${{ steps.meta.outputs.ch_version }}
+          tags: |
+            ${{ steps.meta.outputs.keeper_image }}:${{ steps.meta.outputs.owlpane_tag }}
+            ${{ steps.meta.outputs.keeper_image }}:latest-26.8
+          labels: |
+            org.opencontainers.image.title=OwlPane ClickHouse Keeper
+            org.opencontainers.image.source=https://github.com/OwlPane/ClickHouse
+            org.opencontainers.image.version=${{ steps.meta.outputs.owlpane_tag }}
+            org.opencontainers.image.licenses=Apache-2.0
+          cache-from: type=gha,scope=keeper
+          cache-to: type=gha,scope=keeper,mode=max
